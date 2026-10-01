@@ -1,6 +1,11 @@
-node_modules
-dist
-data
-client
+node_modules/
+**/node_modules/
+
+dist/
+**/dist/
+
+data/
 .env
+.env.*
 shop-config.json
+.git/
