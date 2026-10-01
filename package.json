@@ -1,0 +1,48 @@
+{
+  "name": "wholesale-billing-desktop",
+  "version": "2.0.0",
+  "main": "main.js",
+  "description": "Fruit & Vegetable Wholesale Billing",
+  "scripts": {
+    "build": "vite build",
+    "start": "npm run build && electron .",
+    "web": "npm run build && node server/index.js",
+    "dist": "npm run build && node make-config.js && electron-builder --win",
+    "cloud": "node cloud.js",
+    "test-mongo": "node test-mongo.js"
+  },
+  "dependencies": {
+    "@seald-io/nedb": "^4.0.4",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "serialport": "^12.0.0",
+    "mongodb": "^6.8.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.0"
+  },
+  "build": {
+    "appId": "com.shop.billing",
+    "productName": "Wholesale Billing",
+    "files": [
+      "main.js",
+      "preload.js",
+      "setup.html",
+      "shop-config.json",
+      "server/**",
+      "client/dist/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false
+    }
+  },
+  "author": "Unique Basket"
+}

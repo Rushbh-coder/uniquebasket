@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Setup</title><style>
+body{font:16px system-ui,Segoe UI,Arial;background:#f3f5f7;color:#14202b;display:grid;place-items:center;min-height:100vh;margin:0}
+.c{background:#fff;border:1px solid #d5dce3;border-radius:10px;padding:28px;width:500px}h2{margin-top:0}label{display:block;margin:10px 0 4px;font-weight:600}
+input[type=text],input[type=password]{width:100%;height:38px;padding:0 8px;border:1px solid #ccc;border-radius:6px}.o{border:1px solid #d5dce3;border-radius:8px;padding:10px;margin:8px 0;cursor:pointer;display:block;font-weight:400}
+button{margin-top:16px;width:100%;height:42px;background:#0f7b4f;color:#fff;border:0;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer}small{color:#64748b}#e{color:#c0392b;min-height:20px;margin-top:8px}.f{display:none}</style></head><body><div class="c">
+<h2>🧺 Unique Basket – PC Setup</h2><small>Choose how this computer works. You do this once.</small>
+<label class="o"><input type="radio" name="m" value="cloud" checked> <b>☁️ Cloud PC (recommended)</b><br><small>All data stored in your cloud database. Every PC sees the same products, rates and bills. Needs internet.</small></label>
+<label class="o"><input type="radio" name="m" value="standalone"> <b>Single PC (offline)</b><br><small>Data stays on this PC only. No internet needed.</small></label>
+<label class="o"><input type="radio" name="m" value="counter"> <b>Counter → hosted server (advanced)</b><br><small>Only if you run the backend on a cloud host (see SETUP.md, Option B).</small></label>
+<div id="cid" ><label>Counter name for this PC (C1, C2, C3 …)</label><input type="text" id="cn" maxlength="4" placeholder="C1"></div>
+<div id="cloud" class="f"><label>Cloud database address (MONGO_URI)</label><input type="text" id="mu" placeholder="mongodb+srv://..."><label>Manager password (only if this is the very first PC)</label><input type="password" id="ap"></div>
+<div id="host" class="f"><label>Server address (https://...)</label><input type="text" id="su" placeholder="https://your-server"></div>
+<div id="e"></div><button onclick="go()">Save & Start</button></div>
+<script>
+let hasMongo=true;window.setup.defaults().then(d=>{hasMongo=d.hasMongo;upd()});
+const $=i=>document.getElementById(i),mode=()=>document.querySelector('[name=m]:checked').value;
+function upd(){const m=mode();$('cid').style.display=m==='standalone'?'none':'block';$('cloud').style.display=m==='cloud'&&!hasMongo?'block':'none';$('host').style.display=m==='counter'?'block':'none'}
+document.querySelectorAll('[name=m]').forEach(x=>x.onchange=upd);
+function go(){const m=mode(),c={mode:m},id=$('cn').value.trim().toUpperCase();
+ if(m!=='standalone'){if(!id){$('e').textContent='Enter a counter name, e.g. C1';return}c.counterId=id}
+ if(m==='cloud'&&!hasMongo){if(!$('mu').value.trim()){$('e').textContent='Enter the cloud database address';return}c.mongoUri=$('mu').value.trim();c.adminPassword=$('ap').value}
+ if(m==='counter'){const u=$('su').value.trim();if(!/^https?:\/\//.test(u)){$('e').textContent='Address must start with https://';return}c.serverUrl=u}
+ window.setup.save(c)}
+upd();
+</script></body></html>
