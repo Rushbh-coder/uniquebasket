@@ -1,25 +1,28 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Setup</title><style>
-body{font:16px system-ui,Segoe UI,Arial;background:#f3f5f7;color:#14202b;display:grid;place-items:center;min-height:100vh;margin:0}
-.c{background:#fff;border:1px solid #d5dce3;border-radius:10px;padding:28px;width:500px}h2{margin-top:0}label{display:block;margin:10px 0 4px;font-weight:600}
-input[type=text],input[type=password]{width:100%;height:38px;padding:0 8px;border:1px solid #ccc;border-radius:6px}.o{border:1px solid #d5dce3;border-radius:8px;padding:10px;margin:8px 0;cursor:pointer;display:block;font-weight:400}
-button{margin-top:16px;width:100%;height:42px;background:#0f7b4f;color:#fff;border:0;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer}small{color:#64748b}#e{color:#c0392b;min-height:20px;margin-top:8px}.f{display:none}</style></head><body><div class="c">
-<h2>🧺 Unique Basket – PC Setup</h2><small>Choose how this computer works. You do this once.</small>
-<label class="o"><input type="radio" name="m" value="cloud" checked> <b>☁️ Cloud PC (recommended)</b><br><small>All data stored in your cloud database. Every PC sees the same products, rates and bills. Needs internet.</small></label>
-<label class="o"><input type="radio" name="m" value="standalone"> <b>Single PC (offline)</b><br><small>Data stays on this PC only. No internet needed.</small></label>
-<label class="o"><input type="radio" name="m" value="counter"> <b>Counter → hosted server (advanced)</b><br><small>Only if you run the backend on a cloud host (see SETUP.md, Option B).</small></label>
-<div id="cid" ><label>Counter name for this PC (C1, C2, C3 …)</label><input type="text" id="cn" maxlength="4" placeholder="C1"></div>
-<div id="cloud" class="f"><label>Cloud database address (MONGO_URI)</label><input type="text" id="mu" placeholder="mongodb+srv://..."><label>Manager password (only if this is the very first PC)</label><input type="password" id="ap"></div>
-<div id="host" class="f"><label>Server address (https://...)</label><input type="text" id="su" placeholder="https://your-server"></div>
-<div id="e"></div><button onclick="go()">Save & Start</button></div>
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"><title>PC Setup</title><style>
+body{font:14px "Segoe UI",Arial;background:#1f3a5f;color:#111827;display:grid;place-items:center;min-height:100vh;margin:0}
+.c{background:#fff;border:1px solid #0f2035;padding:22px;width:560px}h2{margin:0 0 4px}label{display:block;margin:8px 0 3px;font-weight:600}
+input,select{width:100%;height:32px;padding:0 8px;border:1px solid #b9c3ce;box-sizing:border-box;font:inherit}.o{border:1px solid #b9c3ce;padding:8px;margin:6px 0;cursor:pointer;display:block;font-weight:400}.o:has(input:checked){border-color:#0b6e4f;background:#eefaf3}.o input{width:auto;height:auto}
+button{margin-top:14px;width:100%;height:38px;background:#0b6e4f;color:#fff;border:0;font-size:15px;font-weight:600;cursor:pointer}small{color:#5b6675}#e{color:#b42318;min-height:20px;margin-top:8px;font-weight:600}.f{display:none}.ip{font-family:Consolas,monospace}</style></head><body><div class="c">
+<h2>Unique Basket – PC Setup</h2><small>Choose how this computer works. Done once per PC.</small>
+<label class="o"><input type="radio" name="m" value="server" checked> <b>Manager PC / Shop server</b><br><small>Holds the shop database. Counter PCs connect to this PC over the shop network. Keep it on during billing.</small></label>
+<label class="o"><input type="radio" name="m" value="terminal"> <b>Counter PC (billing counter)</b><br><small>Connects to the manager PC. Needs the server address and an enrolment code from Manager → Counters.</small></label>
+<label class="o"><input type="radio" name="m" value="standalone"> <b>Single PC (offline, no network)</b><br><small>Everything on this PC only.</small></label>
+<div id="srv"><label>Shop database</label><select id="dbk"><option value="local">Built-in database on this PC – works without internet, nothing to install</option><option value="mongo">MongoDB (installed on this PC, or an Atlas address)</option></select>
+<div id="mubox" class="f"><label>Database address</label><input type="text" id="mu" placeholder="mongodb://127.0.0.1:27017  (MongoDB on this PC)"><small>Leave blank for MongoDB installed on this PC. Atlas (mongodb+srv://…) also works but then billing needs internet.</small></div></div>
+<div id="adm"><label>Manager password (first start only, 8+ characters)</label><input type="password" id="ap"><label>Bill series for this PC</label><input type="text" id="cn" maxlength="4" value="C1"><small>Keep C1 if this PC already made bills with v2.</small></div>
+<div id="term" class="f"><label>Shop server address</label><input type="text" id="su" placeholder="http://192.168.1.10:4310"><label>Enrolment code</label><input type="text" id="ec" placeholder="e.g. K7M2QX9P" style="text-transform:uppercase"></div>
+<div id="ipbox"><small>This PC's network address: <span class="ip" id="ips"></span> (port 4310)</small></div>
+<div id="e"></div><button id="go">Save & Start</button></div>
 <script>
-let hasMongo=true;window.setup.defaults().then(d=>{hasMongo=d.hasMongo;upd()});
 const $=i=>document.getElementById(i),mode=()=>document.querySelector('[name=m]:checked').value;
-function upd(){const m=mode();$('cid').style.display=m==='standalone'?'none':'block';$('cloud').style.display=m==='cloud'&&!hasMongo?'block':'none';$('host').style.display=m==='counter'?'block':'none'}
-document.querySelectorAll('[name=m]').forEach(x=>x.onchange=upd);
-function go(){const m=mode(),c={mode:m},id=$('cn').value.trim().toUpperCase();
- if(m!=='standalone'){if(!id){$('e').textContent='Enter a counter name, e.g. C1';return}c.counterId=id}
- if(m==='cloud'&&!hasMongo){if(!$('mu').value.trim()){$('e').textContent='Enter the cloud database address';return}c.mongoUri=$('mu').value.trim();c.adminPassword=$('ap').value}
- if(m==='counter'){const u=$('su').value.trim();if(!/^https?:\/\//.test(u)){$('e').textContent='Address must start with https://';return}c.serverUrl=u}
- window.setup.save(c)}
-upd();
+window.setup.defaults().then(d=>{$('ips').textContent=d.ips.join(', ')||'unknown';if(d.hasMongo)$('mu').placeholder='(using MONGO_URI from .env)'});
+function upd(){const m=mode();$('srv').style.display=m==='server'?'block':'none';$('adm').style.display=m==='terminal'?'none':'block';$('term').style.display=m==='terminal'?'block':'none';$('ipbox').style.display=m==='server'?'block':'none'}
+document.querySelectorAll('[name=m]').forEach(x=>x.onchange=upd);upd();
+$('dbk').onchange=()=>{$('mubox').style.display=$('dbk').value==='mongo'?'block':'none'};
+$('go').onclick=async()=>{const m=mode(),c={mode:m};$('e').textContent='';
+ if(m!=='terminal'){c.adminPassword=$('ap').value;c.counterId=$('cn').value.trim()||'C1'}
+ if(m==='server'){c.db=$('dbk').value;if(c.db==='mongo')c.mongoUri=$('mu').value.trim()}
+ if(m==='terminal'){c.serverUrl=$('su').value.trim();c.enrolCode=$('ec').value.trim().toUpperCase()}
+ $('go').disabled=true;$('go').textContent='Please wait…';
+ try{await window.setup.save(c)}catch(x){$('e').textContent=String(x.message||x).replace(/^Error invoking remote method '[^']+': (Error: )?/,'');$('go').disabled=false;$('go').textContent='Save & Start'}};
 </script></body></html>

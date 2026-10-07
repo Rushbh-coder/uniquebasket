@@ -3,3 +3,5 @@ dist
 data
 .env
 shop-config.json
+client/dist
+release

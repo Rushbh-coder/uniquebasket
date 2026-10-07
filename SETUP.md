@@ -1,69 +1,68 @@
-# Unique Basket Billing – Complete Setup (cloud database, no Render)
+# Shop setup (v3)
 
-## How it works
-Every shop PC runs this app. All PCs read and write ONE cloud database (MongoDB Atlas).
-Products, rates, stock, users and every bill are stored in the cloud. The manager logs in on any PC
-and sees ALL counters together (Bills & Reports, Counter column). The weighing scale and printer stay on each PC.
-No server to deploy, no Render. Needs internet while billing.
+## 0. Before anything: secure the old installer
+v2 put the MongoDB Atlas password inside `shop-config.json` and inside `Wholesale Billing Setup 2.0.0.exe`.
+Change that Atlas user's password now (Atlas → Database Access), stop sharing the old .exe. v3 empties `shop-config.json`.
 
-## PART 1 – Cloud database (once, 10 minutes)
-1. Go to https://www.mongodb.com/atlas , sign up, create a FREE cluster (M0).
-2. Security > Database Access > Add user: username `basket`, password letters+numbers only (e.g. `Basket7788Shop`),
-   role "Read and write to any database".
-3. Security > Network Access > Add IP Address > "Allow access from anywhere" (0.0.0.0/0) > Confirm.
-4. Database > Connect > Drivers > copy the connection string:
-   mongodb+srv://basket:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority
-   Replace <password> with your password.
+## 1. Manager PC (= shop server)
+1. Give it a **fixed LAN IP** (router → DHCP reservation), e.g. `192.168.1.10`.
+2. Install `Wholesale Billing Setup 3.0.0.exe` → PC Setup → **Manager PC / Shop server** → choose the shop database:
+   * **Built-in database on this PC** (default): works without internet, nothing to install. Data files are in
+     `%APPDATA%\wholesale-billing-desktop\data`. All data is held in memory, so it suits one shop's normal volume;
+     for very large history move to MongoDB.
+   * **MongoDB**: install **MongoDB Community Server** (Windows MSI, "Install as a Service") and leave the address blank.
+     It listens on `127.0.0.1:27017` only — do not open it to the network. An Atlas address (`mongodb+srv://…`) also
+     works, but then billing stops when internet stops.
+3. Manager password (first start) · Bill series `C1` (keep if this PC billed with v2).
 
-## PART 2 – Project on your main PC
-1. Install Node.js 20 LTS (nodejs.org) and VS Code. Unzip this project, e.g. D:\wholesale-billing-desktop.
-2. Open the folder in VS Code (File > Open Folder).
-3. Open the file `.env` and set:
-   MONGO_URI  = your connection string from step 4
-   ADMIN_PASSWORD = the manager password you want (8+ characters)
-   Save (Ctrl+S).
-4. Double-click `1-install.bat` (or terminal: npm install). Wait until it finishes.
-5. Double-click `2-test-cloud-connection.bat`. You must see:  MONGO CONNECTED
-   (If not: bad auth = wrong password | ENOTFOUND = wrong cluster address | timeout = Network Access step 3.)
-6. Double-click `3-run-app.bat` (or terminal: npm start).
-7. First screen "PC Setup": keep "Cloud PC", counter name C1, Save & Start.
-8. Login on the MANAGER card: manager / your ADMIN_PASSWORD.
-9. Manager > Users: create operator logins. Manager > Products: add products and rates.
-   Manager > Scale: choose Mock (testing) or Serial (real scale: COM port, baud rate from the scale manual).
+### Working without internet
+Internet is needed by nothing except an Atlas database. With the built-in database (or MongoDB on the manager PC) the
+manager PC and all counters bill over the shop network with the internet cable unplugged.
+A PC that already uses Atlas: close the app, run `6-switch-this-pc-to-offline.bat` (needs internet once, to copy the
+data down). The cloud data is only read. The old settings are kept as `config.before-offline-<time>.json` next to
+`config.json`; copying that file back over `config.json` returns the PC to the cloud database.
+Only one PC may own the shop data: other PCs must be **Counter PCs** of this manager PC, not connected to Atlas themselves.
+4. Windows Firewall: allow inbound **TCP 4310** on *Private* networks (first start shows a prompt → Allow on private networks).
+5. Existing v2 data: point it at the same database (v2 used `MONGO_DB=uniquebasket`). It is upgraded automatically.
+   To move Atlas data to the local MongoDB once: `mongodump --uri "<atlas uri>" --db uniquebasket` then `mongorestore --db uniquebasket dump/uniquebasket`.
 
-## PART 3 – Install on the other PCs
-1. On the main PC double-click `4-build-installer-exe.bat` (or npm run dist). It needs the real MONGO_URI in .env.
-   Result: dist\Wholesale Billing Setup 2.0.0.exe   (cloud address is bundled inside)
-   If Windows shows a symbolic-link error: Settings > For developers > Developer Mode ON, then run again.
-2. Copy that one .exe to each PC (USB / Dropbox) and install it. Windows SmartScreen: More info > Run anyway.
-3. First screen: keep "Cloud PC", enter counter name (C2, C3, ...), Save & Start.
-4. Login with an operator or the manager created in step 2.9.
-5. On each PC: Manager login > Scale > set THAT PC's COM port. (Scale settings are saved per PC, not in the cloud.)
+## 2. Create the counters (manager)
+Manager → **Counters** → *+ Add counter*: Terminal ID `COUNTER-01`, Name, Bill series `C2` (each counter its own series),
+paper 58/80mm/A4, printer name. An **8-character enrolment code** is shown (valid 7 days, single use).
 
-## PART 4 – Owner / admin view
-Login with the MANAGER card on any PC > Bills & Reports: pick a date; see sales, cash, UPI, credit, kg sold,
-and every bill from all counters (Counter column). Also Products, Users, audit data. To inspect raw data:
-Atlas > Database > Browse Collections > uniquebasket.
+## 3. Counter PC (operator)
+1. Same LAN as the manager PC. Install the same .exe → PC Setup → **Counter PC**.
+2. Server address `http://192.168.1.10:4310`, enrolment code from step 2 → Save & Start.
+3. The counter now appears **ONLINE** in Manager → Dashboard / Counters.
+4. Log in once as manager on that counter → **Hardware** → set the scale COM port for that PC (see docs/HARDWARE.md) → Test print.
+A lost / replaced counter: Manager → Counters → *New enrolment code* (old key stops working immediately).
 
-## Daily rules
-- Bill numbers: INV/2026-27/C1-000001, C2-000001 ... unique per counter.
-- Operators cannot change rates or enter manual weight (Manager only). The app enforces this on every request.
-- Forgot manager password: set a new ADMIN_PASSWORD in .env and double-click `5-reset-manager-password.bat`.
-- Change a PC's role/counter: delete %APPDATA%\wholesale-billing-desktop\config.json and reopen.
+## 4. Users
+Manager → **Users**: create `operator1…` (role OPERATOR) with password and a 4-6 digit **PIN** (fast login).
+Give managers a PIN too — it is what they type on a counter to approve discounts, manual weights, cancellations.
 
-## Security
-- The cloud address (with its password) is inside .env and inside the installer. Treat both as private; install only on shop PCs.
-- Atlas user: give it only this database if possible. If the password ever leaks, change it in Atlas and rebuild the installer.
-- Better: Atlas > Network Access > allow only your shop's public IP instead of 0.0.0.0/0 (if your internet IP is fixed).
-- Turn on Atlas backups (Cluster > Backup) for a paid tier, or export regularly.
+## 5. Daily use
+* Operator: login → bill (see docs/SHORTCUTS.md) → optional **Shift** open/close for cash counting.
+* Manager: Dashboard (live), change rates (Products & Rates → *Rate*; can schedule a future time), reports, purchases, stock.
 
-## Limits (honest)
-- NO internet = NO billing in Cloud PC mode (a PC cannot reach the database). Use a reliable connection / a second SIM hotspot.
-  Offline queue (bill offline, upload later) is not built yet. "Single PC (offline)" mode works with no internet but keeps its own separate data.
-- Scale: generic serial reader (e.g. "ST,GS,+024.650kg"). Confirm with your scale model's manual.
-- Printer: Windows print dialog (80mm receipt). Thermal printers may not print emoji: set icons:false in client/src/App.jsx (SHOP line).
+## 6. Backup & restore
+* Automatic: every day at the time in Settings (default 23:30) on the server PC → `%APPDATA%\wholesale-billing-desktop\data\backups\backup-*.json.gz` (kept 30 days).
+  Set `BACKUP_DIR` in `.env` to put them on a second disk / OneDrive / Google Drive folder (that is your off-site copy).
+* **Backup now**: Manager → Backup. **Restore**: Manager → Backup → *Restore…* → type RESTORE + your password. A safety backup of the current data is taken first. Restart all counters after a restore.
+* Additionally (MongoDB): `mongodump --db uniquebasket --out D:\mongo-backup\%date%`.
 
-## OPTION B – run the backend itself on a cloud host (instead of on each PC)
-Needs a hosting service (Railway, Google Cloud Run, Fly.io, a VPS ...). The included Dockerfile works on any of them.
-Set environment variables there: MONGO_URI, MONGO_DB, ADMIN_PASSWORD (start command: node cloud.js).
-Then on each PC choose "Counter -> hosted server" in PC Setup and paste the https address.
+## 7. Network
+* All PCs on the same router/switch (wired recommended). Counter ↔ manager traffic is plain HTTP inside the shop LAN; do **not** port-forward 4310 to the internet.
+* Remote owner access later: use a VPN (e.g. Tailscale) to the manager PC rather than opening ports.
+* If the LAN drops, counters show **SERVER DISCONNECTED**; the open bill stays on screen (and survives an app restart) and is saved with the same request id when the server is back — never twice.
+
+## 8. Build the installer
+On a Windows PC with Node 20: `npm install` → `npm run dist` → `dist\Wholesale Billing Setup 3.0.0.exe`.
+If you see a symbolic-link error: Settings → For developers → Developer Mode ON. The installer contains **no** passwords.
+
+## 9. Single PC (no network)
+PC Setup → *Single PC*: uses the same files as v2 "Single PC" (`data\*.db`, NeDB). All features work on that PC.
+
+## 10. Reset
+* Forgot manager password (server PC): set `ADMIN_PASSWORD` in `.env` → `5-reset-manager-password.bat`.
+* Change a PC's role: delete `%APPDATA%\wholesale-billing-desktop\config.json` and restart.

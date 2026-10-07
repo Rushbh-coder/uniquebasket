@@ -1,0 +1,25 @@
+﻿
+> wholesale-billing-desktop@3.0.0 dist
+> npm run build && node make-config.js && electron-builder --win
+
+
+> wholesale-billing-desktop@3.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 46 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.36 kB │ gzip:  0.27 kB
+dist/assets/index-BfT5LHPV.css   16.81 kB │ gzip:  4.18 kB
+dist/assets/index-CwSv-zvq.js   270.84 kB │ gzip: 83.39 kB
+✓ built in 1.60s
+Installer contains no database credentials. Set up the manager PC with PC Setup; counters enrol with a code.
+  • electron-builder  version=24.13.3 os=10.0.26300
+  • loaded configuration  file=package.json ("build" field)
+  • rebuilding native dependencies  dependencies=@serialport/bindings-cpp@12.0.1 platform=win32 arch=x64
+  • packaging       platform=win32 arch=x64 electron=31.7.7 appOutDir=release\win-unpacked
+  • building        target=nsis file=release\Wholesale Billing Setup 3.0.0.exe archs=x64 oneClick=false perMachine=false
+  • default Electron icon is used  reason=application icon is not set
+  • building block map  blockMapFile=release\Wholesale Billing Setup 3.0.0.exe.blockmap

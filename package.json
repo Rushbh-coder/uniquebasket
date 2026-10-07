@@ -1,23 +1,27 @@
 {
   "name": "wholesale-billing-desktop",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "main": "main.js",
-  "description": "Fruit & Vegetable Wholesale Billing",
+  "description": "Multi-counter Fruit & Vegetable Wholesale/Retail Billing (POS, weighing, inventory, ledger)",
   "scripts": {
     "build": "vite build",
     "start": "npm run build && electron .",
-    "web": "npm run build && node server/index.js",
+    "server": "npm run build && node server/index.js",
+    "web": "npm run server",
+    "test": "node --test --test-concurrency=1 tests/",
+    "test:offline": "set TEST_DB=nedb&& node --test --test-concurrency=1 tests/api.test.js",
     "dist": "npm run build && node make-config.js && electron-builder --win",
     "cloud": "node cloud.js",
-    "test-mongo": "node test-mongo.js"
+    "test-mongo": "node test-mongo.js",
+    "seed-demo": "set SEED_DEMO=1&& node server/index.js"
   },
   "dependencies": {
     "@seald-io/nedb": "^4.0.4",
     "bcryptjs": "^2.4.3",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "serialport": "^12.0.0",
-    "mongodb": "^6.8.0"
+    "mongodb": "^6.8.0",
+    "serialport": "^12.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
@@ -33,16 +37,27 @@
     "files": [
       "main.js",
       "preload.js",
+      "bill-pdf.js",
       "setup.html",
-      "shop-config.json",
       "server/**",
       "client/dist/**",
-      "package.json"
+      "package.json",
+      "!**/tests/**",
+      "!**/*.test.js"
     ],
     "win": {
       "target": "nsis",
       "signAndEditExecutable": false
-    }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "directories": {
+      "output": "release"
+    },
+    "asar": true
   },
   "author": "Unique Basket"
 }
